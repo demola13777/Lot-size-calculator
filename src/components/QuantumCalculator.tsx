@@ -10,6 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +32,7 @@ import {
   ChevronDown,
   ChevronUp,
   TriangleAlert,
+  PlayCircle,
 } from 'lucide-react';
 import { ACCOUNT_CURRENCIES } from '@/data/assets';
 import { calculate, EngineOutput } from '@/lib/engine';
@@ -227,27 +236,21 @@ export default function QuantumCalculator() {
             </Badge>
           )}
           <Tooltip>
-            <TooltipTrigger>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={fetchRates}
-                disabled={loadingRates}
-                className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white h-9 w-9"
-              >
-                <RefreshCw className={`h-4 w-4 ${loadingRates ? 'animate-spin' : ''}`} />
-              </Button>
+            <TooltipTrigger 
+              render={<Button variant="ghost" size="icon" onClick={fetchRates} disabled={loadingRates} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white h-9 w-9" />}
+            >
+              <RefreshCw className={`h-4 w-4 ${loadingRates ? 'animate-spin' : ''}`} />
             </TooltipTrigger>
             <TooltipContent>Refresh exchange rates</TooltipContent>
           </Tooltip>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white h-9 w-9"
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger 
+              render={<Button variant="ghost" size="icon" onClick={toggleTheme} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white h-9 w-9" />}
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </TooltipTrigger>
+            <TooltipContent>Toggle theme</TooltipContent>
+          </Tooltip>
           <Select
             value={prefs.accountCurrency}
             onValueChange={(v) => updatePrefs({ accountCurrency: v || '' })}
@@ -297,9 +300,34 @@ export default function QuantumCalculator() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                  Contract Size
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                    Contract Size
+                  </Label>
+                  <Dialog>
+                    <DialogTrigger 
+                      className="flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                      title="Watch a quick video on how to find your contract size"
+                    >
+                      <PlayCircle className="w-3.5 h-3.5" />
+                      How to find this?
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden bg-black border-zinc-800">
+                      <DialogHeader className="sr-only">
+                        <DialogTitle>How to find your contract size</DialogTitle>
+                        <DialogDescription>A short video tutorial explaining where to find contract sizes for your prop firm.</DialogDescription>
+                      </DialogHeader>
+                      <video 
+                        controls 
+                        autoPlay 
+                        className="w-full h-auto max-h-[80vh] object-contain bg-black"
+                      >
+                        <source src="/contract-size.mp4" type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </DialogContent>
+                  </Dialog>
+                </div>
                 <Input
                   type="number"
                   min="0"
@@ -317,16 +345,6 @@ export default function QuantumCalculator() {
                 {output.displayName}
               </div>
             )}
-
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-relaxed">
-              Type any symbol — broker suffixes like{' '}
-              <code className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1 rounded">m</code>,{' '}
-              <code className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1 rounded">.ecn</code>,{' '}
-              <code className="font-mono bg-zinc-100 dark:bg-zinc-800 px-1 rounded">_pro</code> are
-              stripped automatically. Enter the contract size (units per 1.0 lot) exactly as
-              specified by your prop firm — e.g. 100,000 for standard forex, 100 for gold, 1 for
-              most indices and crypto.
-            </p>
           </div>
 
           {/* Account & Risk */}
