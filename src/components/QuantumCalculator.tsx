@@ -141,7 +141,10 @@ export default function QuantumCalculator() {
   // ── Fetch exchange rates ───────────────────────────────────────────────────
   const fetchRates = useCallback(async () => {
     setLoadingRates(true);
-    const result = await getRates('USD');
+    const [result] = await Promise.all([
+      getRates('USD'),
+      new Promise((resolve) => setTimeout(resolve, 500)) // min 500ms for spin animation
+    ]);
     setRates(result.rates);
     setIsFallback(result.isFallback);
     setLoadingRates(false);
