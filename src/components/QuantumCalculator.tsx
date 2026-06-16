@@ -213,8 +213,8 @@ export default function QuantumCalculator() {
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-5">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-5 mb-6 w-full">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
           <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/25">
             <Zap className="h-5 w-5 text-white" />
           </div>
@@ -228,7 +228,7 @@ export default function QuantumCalculator() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end flex-wrap">
           {isFallback && (
             <Badge
               variant="outline"
@@ -248,9 +248,11 @@ export default function QuantumCalculator() {
           </Tooltip>
           <Tooltip>
             <TooltipTrigger 
-              render={<Button variant="ghost" size="icon" onClick={toggleTheme} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white h-9 w-9" />}
+              render={<Button variant="ghost" size="icon" onClick={toggleTheme} className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white h-9 w-9 overflow-hidden" />}
             >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <div className={`transition-transform duration-500 flex items-center justify-center h-full w-full ${isDark ? 'rotate-180' : 'rotate-0'}`}>
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </div>
             </TooltipTrigger>
             <TooltipContent>Toggle theme</TooltipContent>
           </Tooltip>
