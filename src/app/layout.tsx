@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Quantum Calculator",
@@ -22,9 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-[var(--font-inter)]">
         <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>

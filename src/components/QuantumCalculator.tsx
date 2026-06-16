@@ -435,7 +435,7 @@ export default function QuantumCalculator() {
           )}
 
           {/* Warnings */}
-          {output && output.warnings.length > 0 && <WarningBanner warnings={output.warnings} />}
+
         </div>
 
         {/* ── Result panel ─────────────────────────────────────────────── */}
