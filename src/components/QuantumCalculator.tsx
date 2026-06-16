@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -29,12 +29,9 @@ import {
   Moon,
   Zap,
   Info,
-  ChevronDown,
-  ChevronUp,
-  TriangleAlert,
   PlayCircle,
 } from 'lucide-react';
-import { ACCOUNT_CURRENCIES } from '@/data/assets';
+import { ACCOUNT_CURRENCIES, ASSETS, Asset } from '@/data/assets';
 import { calculate, EngineOutput } from '@/lib/engine';
 import { canonicalToDisplay } from '@/lib/normalizer';
 import { getRates } from '@/lib/exchange-service';
@@ -73,32 +70,6 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-function WarningBanner({ warnings }: { warnings: string[] }) {
-  const [open, setOpen] = useState(false);
-  if (!warnings.length) return null;
-  return (
-    <div className="rounded-xl border border-amber-300/60 dark:border-amber-600/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-xs text-amber-700 dark:text-amber-400">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between w-full font-semibold"
-      >
-        <span className="flex items-center gap-1.5">
-          <TriangleAlert className="h-3.5 w-3.5" />
-          {warnings.length} warning{warnings.length > 1 ? 's' : ''}
-        </span>
-        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </button>
-      {open && (
-        <ul className="mt-2 space-y-1 list-disc list-inside">
-          {warnings.map((w, i) => (
-            <li key={i}>{w}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function QuantumCalculator() {
@@ -110,6 +81,58 @@ export default function QuantumCalculator() {
   const [accountBalance, setAccountBalance] = useState('');
   const [riskValue, setRiskValue] = useState('');
   const [riskType, setRiskType] = useState<'fixed' | 'percent'>('percent');
+
+  // ── States for interactive upgrades ───────────────────────────────────────
+  const [showAlternativeText, setShowAlternativeText] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  // ── Close mobile touch hover when tapping outside ──────────────────────────
+  useEffect(() => {
+    const handleTouchOutside = () => {
+      setShowAlternativeText(false);
+    };
+    document.addEventListener('touchstart', handleTouchOutside);
+    return () => document.removeEventListener('touchstart', handleTouchOutside);
+  }, []);
+
+  // ── Symbol Autocomplete Logic ──────────────────────────────────────────────
+  const filteredAssets = useMemo(() => {
+    const query = symbol.trim().toUpperCase();
+    if (!query) return [];
+    return ASSETS.filter(
+      (asset) =>
+        asset.symbol.includes(query) ||
+        asset.displayName.toUpperCase().includes(query)
+    ).slice(0, 5);
+  }, [symbol]);
+
+  const handleSelectAsset = (asset: Asset) => {
+    setSymbol(asset.symbol);
+    setContractSize(asset.defaultContractSize.toString());
+    setShowSuggestions(false);
+    setActiveIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || filteredAssets.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev < filteredAssets.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveIndex((prev) => (prev > 0 ? prev - 1 : filteredAssets.length - 1));
+    } else if (e.key === 'Enter') {
+      if (activeIndex >= 0 && activeIndex < filteredAssets.length) {
+        e.preventDefault();
+        handleSelectAsset(filteredAssets[activeIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+    }
+  };
   const [entryPrice, setEntryPrice] = useState('');
   const [stopLossPrice, setStopLossPrice] = useState('');
 
@@ -121,9 +144,11 @@ export default function QuantumCalculator() {
   // ── Sync saved prefs ───────────────────────────────────────────────────────
   useEffect(() => {
     if (prefsLoaded) {
-      setAccountBalance(prefs.defaultAccountBalance.toString());
-      setRiskValue(prefs.defaultRiskValue.toString());
-      setRiskType(prefs.defaultRiskType);
+      setTimeout(() => {
+        setAccountBalance(prefs.defaultAccountBalance.toString());
+        setRiskValue(prefs.defaultRiskValue.toString());
+        setRiskType(prefs.defaultRiskType);
+      }, 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoaded]);
@@ -151,7 +176,9 @@ export default function QuantumCalculator() {
   }, []);
 
   useEffect(() => {
-    fetchRates();
+    setTimeout(() => {
+      fetchRates();
+    }, 0);
   }, [fetchRates]);
 
   // ── Engine call (fully deterministic — no UI logic inside) ────────────────
@@ -215,16 +242,45 @@ export default function QuantumCalculator() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-5 mb-6 w-full">
         <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
-          <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/25">
+          <div
+            className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/25 cursor-pointer select-none transition-transform duration-300 hover:scale-105 active:scale-95 animate-pulse"
+            onMouseEnter={() => setShowAlternativeText(true)}
+            onMouseLeave={() => setShowAlternativeText(false)}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              setShowAlternativeText((prev) => !prev);
+            }}
+          >
             <Zap className="h-5 w-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
-              Quantum
-            </h1>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Position Size Calculator
-            </p>
+          <div className="relative h-11 flex flex-col justify-center overflow-hidden">
+            {/* Original Title Text */}
+            <div
+              className={`transition-all duration-500 ease-out transform ${
+                showAlternativeText
+                  ? 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
+                  : 'opacity-100 translate-y-0 scale-100'
+              }`}
+            >
+              <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white leading-none">
+                Quantum
+              </h1>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 whitespace-nowrap">
+                Position Size Calculator
+              </p>
+            </div>
+            {/* Alternative Title Text */}
+            <div
+              className={`absolute left-0 top-0 bottom-0 flex items-center transition-all duration-500 ease-out transform ${
+                showAlternativeText
+                  ? 'opacity-100 translate-y-0 scale-100'
+                  : 'opacity-0 translate-y-4 scale-95 pointer-events-none'
+              }`}
+            >
+              <h1 className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300 bg-clip-text text-transparent leading-none">
+                Nikhil 3.0
+              </h1>
+            </div>
           </div>
         </div>
 
@@ -292,17 +348,71 @@ export default function QuantumCalculator() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 items-end">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <Label className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                   Symbol
                 </Label>
-                <Input
-                  className="bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-mono uppercase text-sm h-10"
-                  placeholder="e.g. USDCAD, XAUUSD, NAS100"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  spellCheck={false}
-                />
+                <div className="relative">
+                  <Input
+                    className="bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-white font-mono uppercase text-sm h-10 w-full"
+                    placeholder="e.g. USDCAD, XAUUSD, NAS100"
+                    value={symbol}
+                    onChange={(e) => {
+                      setSymbol(e.target.value.toUpperCase());
+                      setShowSuggestions(true);
+                      setActiveIndex(-1);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => {
+                      // Allow onMouseDown to execute before list disappears
+                      setTimeout(() => setShowSuggestions(false), 200);
+                    }}
+                    onKeyDown={handleKeyDown}
+                    spellCheck={false}
+                    autoComplete="off"
+                  />
+
+                  {/* Suggestions list dropdown */}
+                  {showSuggestions && filteredAssets.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md shadow-lg max-h-60 overflow-y-auto py-1 animate-in fade-in-50 slide-in-from-top-1 duration-200">
+                      {filteredAssets.map((asset, index) => {
+                        const isActive = index === activeIndex;
+                        return (
+                          <button
+                            key={asset.symbol}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectAsset(asset);
+                            }}
+                            onMouseEnter={() => setActiveIndex(index)}
+                            className={`w-full flex items-center justify-between px-3.5 py-2.5 text-left transition-colors duration-150 text-xs font-medium border-none outline-none ${
+                              isActive
+                                ? 'bg-zinc-100 dark:bg-zinc-800/80 text-zinc-900 dark:text-white'
+                                : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/50'
+                            }`}
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bold font-mono text-zinc-900 dark:text-white">
+                                {asset.symbol}
+                              </span>
+                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 truncate max-w-[120px] sm:max-w-[150px]">
+                                {asset.displayName.split('(')[1]?.replace(')', '') || asset.displayName}
+                              </span>
+                            </div>
+                            <span
+                              className={`text-[9px] font-black px-1.5 py-0.5 rounded border scale-90 ${
+                                ASSET_TYPE_COLORS[asset.type] ?? ''
+                              }`}
+                            >
+                              {asset.type.replace('_', ' ')}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -384,20 +494,41 @@ export default function QuantumCalculator() {
                   value={riskValue}
                   onChange={(e) => setRiskValue(e.target.value)}
                 />
-                <Tabs
-                  value={riskType}
-                  onValueChange={(v) => setRiskType(v as 'fixed' | 'percent')}
-                  className="w-[130px] shrink-0"
-                >
-                  <TabsList className="grid grid-cols-2 w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 h-10">
-                    <TabsTrigger value="percent" className="text-xs font-bold">
-                      %
-                    </TabsTrigger>
-                    <TabsTrigger value="fixed" className="text-xs font-bold">
-                      {prefs.accountCurrency}
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                {/* Interactive toggle switch for Percentage/USD */}
+                <div className="relative w-[130px] h-10 bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-lg p-[3px] flex shrink-0 select-none">
+                  {/* Sliding indicator */}
+                  <div
+                    className={`absolute top-[3px] bottom-[3px] left-[3px] w-[calc(50%-3px)] bg-white dark:bg-zinc-700 rounded-md shadow-sm transition-all duration-300 ease-in-out ${
+                      riskType === 'percent'
+                        ? 'translate-x-0'
+                        : 'translate-x-full'
+                    }`}
+                  />
+                  {/* Percent option */}
+                  <button
+                    type="button"
+                    onClick={() => setRiskType('percent')}
+                    className={`relative z-10 flex-1 flex items-center justify-center text-xs font-bold transition-colors duration-250 ${
+                      riskType === 'percent'
+                        ? 'text-zinc-900 dark:text-white'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    %
+                  </button>
+                  {/* Fixed option */}
+                  <button
+                    type="button"
+                    onClick={() => setRiskType('fixed')}
+                    className={`relative z-10 flex-1 flex items-center justify-center text-xs font-bold transition-colors duration-250 ${
+                      riskType === 'fixed'
+                        ? 'text-zinc-900 dark:text-white'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    {prefs.accountCurrency}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -560,7 +691,7 @@ export default function QuantumCalculator() {
       {/* ── Footer ─────────────────────────────────────────────────────── */}
       <p className="text-center text-[11px] text-zinc-400 dark:text-zinc-600 pb-2">
         Pip size and quote currency are resolved from the internal asset registry — contract size
-        is the only manual input, so results match your prop firm's exact specs.
+        is the only manual input, so results match your prop firm&apos;s exact specs.
       </p>
     </div>
   );

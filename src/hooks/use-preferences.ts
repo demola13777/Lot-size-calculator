@@ -21,7 +21,10 @@ export function usePreferences() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    setIsLoaded(true);
+    const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const updatePrefs = (newPrefs: Partial<Preferences>) => {
